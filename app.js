@@ -1,7 +1,8 @@
-// index.js
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger');
 require('dotenv').config();
 
 const app = express();
@@ -22,6 +23,14 @@ app.use((req, res, next) => {
     }
 
     next();
+});
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+// Редирект с корневого пути на Swagger UI
+app.get('/', (req, res) => {
+    res.redirect('/api-docs');
 });
 
 // Подключение к MongoDB
@@ -65,9 +74,29 @@ const noteSchema = new mongoose.Schema({
 // Модель заметки
 const Note = mongoose.model('Note', noteSchema);
 
-// Маршруты
-
-// Получить все заметки
+/**
+ * @swagger
+ * /api/notes:
+ *   get:
+ *     summary: Получить все заметки
+ *     description: Возвращает список всех заметок, отсортированный по дате обновления
+ *     tags: [Notes]
+ *     responses:
+ *       200:
+ *         description: Успешный ответ со списком заметок
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Note'
+ *       500:
+ *         description: Ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.get('/api/notes', async (req, res) => {
     try {
         const notes = await Note.find().sort({ updatedAt: -1 });
@@ -77,7 +106,40 @@ app.get('/api/notes', async (req, res) => {
     }
 });
 
-// Получить заметку по ID
+/**
+ * @swagger
+ * /api/notes/{id}:
+ *   get:
+ *     summary: Получить заметку по ID
+ *     description: Возвращает заметку по указанному ID
+ *     tags: [Notes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID заметки
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Успешный ответ с заметкой
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       404:
+ *         description: Заметка не найдена
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.get('/api/notes/:id', async (req, res) => {
     try {
         const note = await Note.findById(req.params.id);
@@ -92,7 +154,54 @@ app.get('/api/notes/:id', async (req, res) => {
     }
 });
 
-// Создать новую заметку
+/**
+ * @swagger
+ * /api/notes:
+ *   post:
+ *     summary: Создать новую заметку
+ *     description: Создает новую заметку с указанными данными
+ *     tags: [Notes]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Заголовок заметки
+ *               content:
+ *                 type: string
+ *                 description: Содержание заметки
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Теги заметки
+ *     responses:
+ *       201:
+ *         description: Заметка успешно создана
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Неверный запрос - отсутствуют обязательные поля
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.post('/api/notes', async (req, res) => {
     try {
         const { title, content, tags } = req.body;
@@ -114,7 +223,58 @@ app.post('/api/notes', async (req, res) => {
     }
 });
 
-// Обновить заметку
+/**
+ * @swagger
+ * /api/notes/{id}:
+ *   put:
+ *     summary: Обновить заметку
+ *     description: Обновляет заметку по указанному ID
+ *     tags: [Notes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID заметки
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Заголовок заметки
+ *               content:
+ *                 type: string
+ *                 description: Содержание заметки
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Теги заметки
+ *     responses:
+ *       200:
+ *         description: Заметка успешно обновлена
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       404:
+ *         description: Заметка не найдена
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.put('/api/notes/:id', async (req, res) => {
     try {
         const { title, content, tags } = req.body;
@@ -141,7 +301,45 @@ app.put('/api/notes/:id', async (req, res) => {
     }
 });
 
-// Удалить заметку
+/**
+ * @swagger
+ * /api/notes/{id}:
+ *   delete:
+ *     summary: Удалить заметку
+ *     description: Удаляет заметку по указанному ID
+ *     tags: [Notes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID заметки
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Заметка успешно удалена
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 note:
+ *                   $ref: '#/components/schemas/Note'
+ *       404:
+ *         description: Заметка не найдена
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.delete('/api/notes/:id', async (req, res) => {
     try {
         const deletedNote = await Note.findByIdAndDelete(req.params.id);
@@ -156,7 +354,36 @@ app.delete('/api/notes/:id', async (req, res) => {
     }
 });
 
-// Поиск заметок по тегам
+/**
+ * @swagger
+ * /api/notes/tags/{tag}:
+ *   get:
+ *     summary: Поиск заметок по тегу
+ *     description: Возвращает список заметок, содержащих указанный тег
+ *     tags: [Notes]
+ *     parameters:
+ *       - in: path
+ *         name: tag
+ *         required: true
+ *         description: Тег для поиска
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Успешный ответ со списком заметок
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Note'
+ *       500:
+ *         description: Ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.get('/api/notes/tags/:tag', async (req, res) => {
     try {
         const tag = req.params.tag;
@@ -169,6 +396,11 @@ app.get('/api/notes/tags/:tag', async (req, res) => {
 });
 
 // Запуск сервера
-app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Сервер запущен на порту ${PORT}`);
+        console.log(`Документация API доступна по адресу: http://localhost:${PORT}/api-docs`);
+    });
+}
+
+module.exports = app;
