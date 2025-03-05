@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: notes-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://umbetovsyrym:<db_password>@lamek.6rpdu.mongodb.net/?retryWrites=true&w=majority&appName=lamek
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
